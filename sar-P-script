@@ -9,24 +9,25 @@ current_t=$(date +"%T")
 file_name="`date "+%Y-%m-%d-%H:%M:%S"`"
 
 # input the sar-P results into a file
-LC_TIME='POSIX' sar -P 1 1 $num > sar-P-1-1-$num
+LC_TIME='POSIX' sar -P ALL 1 $num | grep "all" > sar-P-1-1
 
 new_t=$(date +"%T")
 
 # remove the first line (you don't need it)
-sed -i '/dennis/d' sar-P-1-1-$num
+sed -i '/dennis/d' sar-P-1-1
 
 # makes the spaces commas, and then squeezes repeating commas
-tr -s  ' ' ',' < sar-P-1-1-$num > new-sar-P-1-1-$num
+tr -s  ' ' ',' < sar-P-1-1 > new-sar-P-1-1
 
 # cuts the first field into a new file (the times)
-cut -d ',' -f 1 new-sar-P-1-1-$num > sar-times$num
+cut -d ',' -f 1 new-sar-P-1-1 > sar-times
 
 # cuts the last field into a new file (percentages)
-cut -d ',' -f 8 new-sar-P-1-1-$num > sar-idle$num
+cut -d ',' -f 8 new-sar-P-1-1 > sar_idle
+cut -d ',' -f 8 new-sar-P-1-1 >> ~/sar_logs/sar_P_idle_log
 
 # creates an x and y table
-paste sar-times$num sar-idle$num > $file_name
+paste sar-times sar_idle > $file_name
 
 # cuts away anything that we don't need (headers)
 sed -i '/Average/d' $file_name
@@ -41,7 +42,7 @@ set xrange ["$current_t":"$new_t"]
 set format x "%H:%M:%S"
 set ylabel "%idle"
 set xlabel "time"
-set title "sar -P"
+set title "$file_name.idle"
 set yrange [0:100]
 set style line 1 lc rgb '#8b1a0e' pt 1 ps 1 lt 1 lw 2 # --- red
 set style line 2 lc rgb '#5e9c36' pt 6 ps 1 lt 1 lw 2 # --- green
@@ -50,17 +51,19 @@ set border 3 back ls 11
 set tics nomirror
 set style line 12 lc rgb '#808080' lt 0 lw 1
 set grid back ls 12
-set terminal png size 800,600 enhanced font "Helvetica,20"            
+set terminal png size 800,600 enhanced font "Helvetica,15"
 set output "$file_name.png"
-plot "$file_name" using 1:2 with points pointtype 20 notitle
+set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 7 ps 1.5   # --- blue
+plot "$file_name" using 1:2 with linespoints ls 1 notitle
 EOF
 
 # moves the png into its appropriate folder
 mv $file_name.png ~/gnuplot_plots
 
+echo "Check the gnuplot_plots folder in your home directory!"
 # remove all of the place-holders
 rm $file_name
-rm sar-P-1-1-$num
-rm new-sar-P-1-1-$num
-rm sar-times$num
-rm sar-idle$num
+rm sar-P-1-1
+rm new-sar-P-1-1
+rm sar-times
+rm sar_idle
